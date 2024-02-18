@@ -1,0 +1,70 @@
+﻿@page "/customers/{action}/{customerId?}"
+@inject ICustomerService CustomerService
+@inject NavigationManager NavigationManager
+@inject IToastService ToastService
+
+
+@if (errorMessage != null)
+{
+    <div class="alert alert-danger" role="alert">
+        @errorMessage
+    </div>
+}
+
+<form>
+    <div class="form-group">
+        <label for="name">Name:</label>
+        <input type="text" class="form-control" id="name" @bind="customer.Name" />
+    </div>
+    <div class="form-group">
+        <label for="age">Age:</label>
+        <input type="age" class="form-control" id="age" @bind="customer.Age" />
+    </div>
+
+    <div class="form-group">
+        <label for="address">Address:</label>
+        <input type="address" class="form-control" id="address" @bind="customer.Address" />
+    </div>
+
+    <button type="submit" class="btn btn-primary" @onclick="SaveCustomer">Save</button>
+    <a href="/customers" class="btn btn-secondary">Cancel</a>
+</form>
+
+@code {
+    CustomerDTO customer = new();
+    string errorMessage = null;
+
+    [Parameter] public string action { get; set; }
+    [Parameter] public string? customerId { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (!string.IsNullOrEmpty(customerId))
+        {
+            if (int.TryParse(customerId, out int parsedId))
+            {
+                customer = await CustomerService.GetCustomerById(parsedId);
+            }
+        }
+    }
+
+    private async Task SaveCustomer()
+    {
+        var response = new ServiceResponse(false, null!);
+        if (customer.Id > 0) // Update existing customer
+        {
+            response = await CustomerService.UpdateCustomer(customer.Id, customer);
+        }
+        else // Create a new customer
+        {
+            response = await CustomerService.AddCustomer(customer);
+        }
+        if(!response.Flag)
+        {
+            ToastService.ShowError(response.Message);
+        }
+        ToastService.ShowSuccess(response.Message);
+
+        NavigationManager.NavigateTo("/customers"); // Example redirect
+    }
+}
